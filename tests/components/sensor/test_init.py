@@ -7,10 +7,13 @@ from pytest import approx
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntityDescription
 from homeassistant.const import (
     ATTR_UNIT_OF_MEASUREMENT,
+    PRESSURE_HPA,
+    PRESSURE_INHG,
     STATE_UNKNOWN,
     TEMP_CELSIUS,
     TEMP_FAHRENHEIT,
 )
+from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_system import IMPERIAL_SYSTEM, METRIC_SYSTEM
@@ -253,3 +256,63 @@ async def test_reject_timezoneless_datetime_str(
         "Invalid datetime: sensor.test provides state '2017-12-19 18:29:42', "
         "which is missing timezone information"
     ) in caplog.text
+
+
+@pytest.mark.parametrize(
+    "native_unit,custom_unit,native_value,custom_value",
+    [
+        (PRESSURE_HPA, PRESSURE_INHG, 1000, 29.5),
+    ],
+)
+async def test_custom_unit(
+    hass,
+    enable_custom_integrations,
+    native_unit,
+    custom_unit,
+    native_value,
+    custom_value,
+):
+    """Test temperature conversion."""
+    entity_registry = er.async_get(hass)
+    platform = getattr(hass.components, "test.sensor")
+    platform.init(empty=True)
+    platform.ENTITIES["0"] = platform.MockSensor(
+        name="Test",
+        native_value=str(native_value),
+        native_unit_of_measurement=native_unit,
+        device_class=SensorDeviceClass.PRESSURE,
+        unique_id="very_unique",
+    )
+
+    entity0 = platform.ENTITIES["0"]
+    assert await async_setup_component(hass, "sensor", {"sensor": {"platform": "test"}})
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity0.entity_id)
+    assert float(state.state) == approx(float(native_value))
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == native_unit
+
+    entity_registry.async_update_entity_options(
+        "sensor.test", "sensor", {"unit": custom_unit}
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity0.entity_id)
+    assert float(state.state) == approx(float(custom_value))
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == custom_unit
+
+    entity_registry.async_update_entity_options(
+        "sensor.test", "sensor", {"unit": native_unit}
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity0.entity_id)
+    assert float(state.state) == approx(float(native_value))
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == native_unit
+
+    entity_registry.async_update_entity_options("sensor.test", "sensor", None)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity0.entity_id)
+    assert float(state.state) == approx(float(native_value))
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == native_unit
