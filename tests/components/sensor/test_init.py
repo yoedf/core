@@ -9,6 +9,7 @@ from homeassistant.const import (
     ATTR_UNIT_OF_MEASUREMENT,
     PRESSURE_HPA,
     PRESSURE_INHG,
+    PRESSURE_KPA,
     STATE_UNKNOWN,
     TEMP_CELSIUS,
     TEMP_FAHRENHEIT,
@@ -261,7 +262,14 @@ async def test_reject_timezoneless_datetime_str(
 @pytest.mark.parametrize(
     "native_unit,custom_unit,native_value,custom_value",
     [
-        (PRESSURE_HPA, PRESSURE_INHG, 1000, 29.5),
+        (
+            PRESSURE_HPA,
+            PRESSURE_INHG,
+            1000,
+            29.53,
+        ),  # Smaller to larger -> more decimals
+        (PRESSURE_KPA, PRESSURE_HPA, 1.234, 12.34),
+        (PRESSURE_HPA, "peer_pressure", 1000, 1000),  # Not a supported pressure unit
     ],
 )
 async def test_custom_unit(
