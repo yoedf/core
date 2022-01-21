@@ -260,16 +260,13 @@ async def test_reject_timezoneless_datetime_str(
 
 
 @pytest.mark.parametrize(
-    "native_unit,custom_unit,native_value,custom_value",
+    "native_unit,custom_unit,state_unit,native_value,custom_value",
     [
-        (
-            PRESSURE_HPA,
-            PRESSURE_INHG,
-            1000,
-            29.53,
-        ),  # Smaller to larger -> more decimals
-        (PRESSURE_KPA, PRESSURE_HPA, 1.234, 12.34),
-        (PRESSURE_HPA, "peer_pressure", 1000, 1000),  # Not a supported pressure unit
+        # Smaller to larger unit, InHg is ~33x larger than hPa -> 1 more decimal
+        (PRESSURE_HPA, PRESSURE_INHG, PRESSURE_INHG, 1000.0, 29.53),
+        (PRESSURE_KPA, PRESSURE_HPA, PRESSURE_HPA, 1.234, 12.34),
+        # Not a supported pressure unit
+        (PRESSURE_HPA, "peer_pressure", PRESSURE_HPA, 1000, 1000),
     ],
 )
 async def test_custom_unit(
@@ -277,6 +274,7 @@ async def test_custom_unit(
     enable_custom_integrations,
     native_unit,
     custom_unit,
+    state_unit,
     native_value,
     custom_value,
 ):
@@ -307,7 +305,7 @@ async def test_custom_unit(
 
     state = hass.states.get(entity0.entity_id)
     assert float(state.state) == approx(float(custom_value))
-    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == custom_unit
+    assert state.attributes[ATTR_UNIT_OF_MEASUREMENT] == state_unit
 
     entity_registry.async_update_entity_options(
         "sensor.test", "sensor", {"unit": native_unit}
