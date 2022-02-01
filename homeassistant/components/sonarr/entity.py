@@ -36,13 +36,11 @@ class SonarrEntity(Entity):
         if self._device_id is None:
             return None
 
-        configuration_url = self.host_config.base_url()
-
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_id)},
             name="Activity Sensor",
             manufacturer="Sonarr",
             sw_version=self.system_status.version,
             entry_type=DeviceEntryType.SERVICE,
-            configuration_url=configuration_url,
+            configuration_url=self.host_config.base_url,
         )

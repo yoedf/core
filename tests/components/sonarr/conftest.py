@@ -7,7 +7,6 @@ from aiopyarr import (
     Command,
     Diskspace,
     SonarrCalendar,
-    SonarrEpisode,
     SonarrQueueDetail,
     SonarrSeries,
     SonarrWantedMissing,
@@ -109,15 +108,8 @@ def mock_setup_entry() -> Generator[None, None, None]:
 
 
 @pytest.fixture
-def mock_sonarr_config_flow(
-    request: pytest.FixtureRequest,
-) -> Generator[None, MagicMock, None]:
+def mock_sonarr_config_flow() -> Generator[None, MagicMock, None]:
     """Return a mocked Sonarr client."""
-    fixture: str = "sonarr/app.json"
-    if hasattr(request, "param") and request.param:
-        fixture = request.param
-
-    app = Application(json.loads(load_fixture(fixture)))
     with patch(
         "homeassistant.components.sonarr.config_flow.SonarrClient", autospec=True
     ) as sonarr_mock:
@@ -129,17 +121,13 @@ def mock_sonarr_config_flow(
         client.async_get_series.return_value = sonarr_series()
         client.async_get_system_status.return_value = sonarr_system_status()
         client.async_get_wanted.return_value = sonarr_wanted()
+
         yield client
 
 
 @pytest.fixture
-def mock_sonarr(request: pytest.FixtureRequest) -> Generator[None, MagicMock, None]:
+def mock_sonarr() -> Generator[None, MagicMock, None]:
     """Return a mocked Sonarr client."""
-    fixture: str = "sonarr/app.json"
-    if hasattr(request, "param") and request.param:
-        fixture = request.param
-
-    app = Application(json.loads(load_fixture(fixture)))
     with patch("homeassistant.components.sonarr.SonarrClient", autospec=True) as sonarr_mock:
         client = sonarr_mock.return_value
         client.async_get_calendar.return_value = sonarr_calendar()
@@ -149,6 +137,7 @@ def mock_sonarr(request: pytest.FixtureRequest) -> Generator[None, MagicMock, No
         client.async_get_series.return_value = sonarr_series()
         client.async_get_system_status.return_value = sonarr_system_status()
         client.async_get_wanted.return_value = sonarr_wanted()
+
         yield client
 
 
