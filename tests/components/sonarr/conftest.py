@@ -123,10 +123,10 @@ def mock_sonarr_config_flow(
         client = sonarr_mock.return_value
         client.async_get_calendar.return_value = sonarr_calendar()
         client.async_get_commands.return_value = sonarr_commands()
-      client.async_get_diskspace.return_value = sonarr_calendar()
+       client.async_get_diskspace.return_value = sonarr_calendar()
         client.async_get_queue.return_value = sonarr_queue()
         client.async_get_series.return_value = sonarr_series()
-      client.async_get_system_status.return_value = sonarr_system_status()
+        client.async_get_system_status.return_value = sonarr_system_status()
         client.async_get_wanted.return_value = sonarr_wanted()
         yield client
 
@@ -141,11 +141,13 @@ def mock_sonarr(request: pytest.FixtureRequest) -> Generator[None, MagicMock, No
     app = Application(json.loads(load_fixture(fixture)))
     with patch("homeassistant.components.sonarr.SonarrClient", autospec=True) as sonarr_mock:
         client = sonarr_mock.return_value
-        client.calendar.return_value = sonarr_calendar()
-        client.commands.return_value = sonarr_commands()
-        client.queue.return_value = sonarr_queue()
-        client.series.return_value = sonarr_series()
-        client.wanted.return_value = sonarr_wanted()
+        client.async_get_calendar.return_value = sonarr_calendar()
+        client.async_get_commands.return_value = sonarr_commands()
+       client.async_get_diskspace.return_value = sonarr_calendar()
+        client.async_get_queue.return_value = sonarr_queue()
+        client.async_get_series.return_value = sonarr_series()
+        client.async_get_system_status.return_value = sonarr_system_status()
+        client.async_get_wanted.return_value = sonarr_wanted()
         yield client
 
 

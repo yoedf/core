@@ -219,7 +219,7 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         """Return the state of the sensor."""
         key = self.entity_description.key
 
-        if key == "diskspace" and self.data.get(key) is not None::
+        if key == "diskspace" and self.data.get(key) is not None:
             total_free = sum(disk.free for disk in self.data[key].disks)
             free = total_free / 1024 ** 3
             return f"{free:.2f}"
