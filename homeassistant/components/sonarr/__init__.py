@@ -3,7 +3,9 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from sonarr import Sonarr, SonarrAccessRestricted, SonarrError
+from aiopyarr import ArrAuthenticationException, ArrException
+from aiopyarr.models.host_configuration import PyArrHostConfiguration
+from aiopyarr.sonarr_client import SonarrClient
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -22,6 +24,7 @@ from .const import (
     CONF_BASE_PATH,
     CONF_UPCOMING_DAYS,
     CONF_WANTED_MAX_ITEMS,
+    DATA_HOST_CONFIG,
     DATA_SONARR,
     DEFAULT_UPCOMING_DAYS,
     DEFAULT_WANTED_MAX_ITEMS,
@@ -45,29 +48,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         }
         hass.config_entries.async_update_entry(entry, options=options)
 
-    sonarr = Sonarr(
-        host=entry.data[CONF_HOST],
+    host_configuration = PyArrHostConfiguration(
+        api_token=entry.data[CONF_API_KEY],
+        ipaddress=entry.data[CONF_HOST],
         port=entry.data[CONF_PORT],
-        api_key=entry.data[CONF_API_KEY],
-        base_path=entry.data[CONF_BASE_PATH],
-        session=async_get_clientsession(hass),
-        tls=entry.data[CONF_SSL],
+        ssl=entry.data[CONF_SSL],
         verify_ssl=entry.data[CONF_VERIFY_SSL],
+        base_api_path=entry.data[CONF_BASE_PATH],
+    )
+
+    sonarr = SonarrClient(
+        host_configuration=host_configuration,
+        session=async_get_clientsession(hass),
     )
 
     try:
-        await sonarr.update()
-    except SonarrAccessRestricted as err:
+        await sonarr.async_get_system_status()
+    except ArrAuthenticationException as err:
         raise ConfigEntryAuthFailed(
             "API Key is no longer valid. Please reauthenticate"
         ) from err
-    except SonarrError as err:
+    except ArrException as err:
         raise ConfigEntryNotReady from err
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
+        DATA_HOST_CONFIG: host_configuration,
         DATA_SONARR: sonarr,
     }
 

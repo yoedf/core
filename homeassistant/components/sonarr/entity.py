@@ -1,7 +1,8 @@
 """Base Entity for Sonarr."""
 from __future__ import annotations
 
-from sonarr import Sonarr
+from aiopyarr.models.host_configuration import PyArrHostConfiguration
+from aiopyarr.sonarr_client import SonarrClient
 
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo, Entity
@@ -15,7 +16,8 @@ class SonarrEntity(Entity):
     def __init__(
         self,
         *,
-        sonarr: Sonarr,
+        sonarr: SonarrClient,
+        host_config: PyArrHostConfiguration,
         entry_id: str,
         device_id: str,
     ) -> None:
@@ -23,6 +25,7 @@ class SonarrEntity(Entity):
         self._entry_id = entry_id
         self._device_id = device_id
         self.sonarr = sonarr
+        self.host_config = host_config
 
     @property
     def device_info(self) -> DeviceInfo | None:
@@ -30,9 +33,7 @@ class SonarrEntity(Entity):
         if self._device_id is None:
             return None
 
-        configuration_url = "https://" if self.sonarr.tls else "http://"
-        configuration_url += f"{self.sonarr.host}:{self.sonarr.port}"
-        configuration_url += self.sonarr.base_path.replace("/api", "")
+        configuration_url = self.host_config.base_url()
 
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_id)},

@@ -5,11 +5,20 @@ from datetime import timedelta
 import logging
 from typing import Any
 
-from sonarr import Sonarr, SonarrConnectionError, SonarrError
+from aiopyarr import ArrConnectionException, ArrException
+from aiopyarr.models.host_configuration import PyArrHostConfiguration
+from aiopyarr.sonarr_client import SonarrClient
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import DATA_GIGABYTES
+from homeassistant.const import (
+    CONF_API_KEY,
+    CONF_HOST,
+    CONF_PORT,
+    CONF_SSL,
+    CONF_VERIFY_SSL,
+    DATA_GIGABYTES,
+) 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -71,11 +80,18 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Sonarr sensors based on a config entry."""
-    sonarr: Sonarr = hass.data[DOMAIN][entry.entry_id][DATA_SONARR]
+    sonarr: SonarrClient = hass.data[DOMAIN][entry.entry_id][DATA_SONARR]
+    host_config: PyArrHostConfiguration = self.hass.data[DOMAIN][entry.entry_id][DATA_HOST_CONFIG]
     options: dict[str, Any] = dict(entry.options)
 
     entities = [
-        SonarrSensor(sonarr, entry.entry_id, description, options)
+        SonarrSensor(
+            sonarr,
+            host_config,
+            entry.entry_id,
+            description,
+            options,
+        )
         for description in SENSOR_TYPES
     ]
 
@@ -93,11 +109,11 @@ def sonarr_exception_handler(func):
         try:
             await func(self, *args, **kwargs)
             self.last_update_success = True
-        except SonarrConnectionError as error:
+        except ArrConnectionException as error:
             if self.available:
                 _LOGGER.error("Error communicating with API: %s", error)
             self.last_update_success = False
-        except SonarrError as error:
+        except ArrException as error:
             if self.available:
                 _LOGGER.error("Invalid response from API: %s", error)
                 self.last_update_success = False
@@ -110,7 +126,8 @@ class SonarrSensor(SonarrEntity, SensorEntity):
 
     def __init__(
         self,
-        sonarr: Sonarr,
+        sonarr: SonarrClient,
+        host_config: PyArrHostConfiguration,
         entry_id: str,
         description: SensorEntityDescription,
         options: dict[str, Any],
@@ -126,6 +143,7 @@ class SonarrSensor(SonarrEntity, SensorEntity):
 
         super().__init__(
             sonarr=sonarr,
+            host_config=host_config,
             entry_id=entry_id,
             device_id=entry_id,
         )
@@ -141,23 +159,23 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         key = self.entity_description.key
 
         if key == "diskspace":
-            await self.sonarr.update()
+            self.data[key] = await self.sonarr.async_get_diskspace()
         elif key == "commands":
-            self.data[key] = await self.sonarr.commands()
+            self.data[key] = await self.sonarr.async_get_commands()
         elif key == "queue":
-            self.data[key] = await self.sonarr.queue()
+            self.data[key] = await self.sonarr.async_get_queue()
         elif key == "series":
-            self.data[key] = await self.sonarr.series()
+            self.data[key] = await self.sonarr.async_get_series()
         elif key == "upcoming":
             local = dt_util.start_of_local_day().replace(microsecond=0)
             start = dt_util.as_utc(local)
             end = start + timedelta(days=self.upcoming_days)
 
-            self.data[key] = await self.sonarr.calendar(
-                start=start.isoformat(), end=end.isoformat()
+            self.data[key] = await self.sonarr.async_get_calendar(
+                start_date=start, end_date=end
             )
         elif key == "wanted":
-            self.data[key] = await self.sonarr.wanted(page_size=self.wanted_max_items)
+            self.data[key] = await self.sonarr.async_get_wanted(page_size=self.wanted_max_items)
 
     @property
     def extra_state_attributes(self) -> dict[str, str] | None:
@@ -165,8 +183,8 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         attrs = {}
         key = self.entity_description.key
 
-        if key == "diskspace":
-            for disk in self.sonarr.app.disks:
+        if key == "diskspace" and self.data.get(key) is not None::
+            for disk in self.data[key].disks:
                 free = disk.free / 1024 ** 3
                 total = disk.total / 1024 ** 3
                 usage = free / total * 100
@@ -201,8 +219,8 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         """Return the state of the sensor."""
         key = self.entity_description.key
 
-        if key == "diskspace":
-            total_free = sum(disk.free for disk in self.sonarr.app.disks)
+        if key == "diskspace" and self.data.get(key) is not None::
+            total_free = sum(disk.free for disk in self.data[key].disks)
             free = total_free / 1024 ** 3
             return f"{free:.2f}"
 

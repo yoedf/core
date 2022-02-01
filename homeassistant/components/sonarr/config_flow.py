@@ -4,7 +4,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from sonarr import Sonarr, SonarrAccessRestricted, SonarrError
+from aiopyarr import ArrAuthenticationException, ArrException
+from aiopyarr.models.host_configuration import PyArrHostConfiguration
+from aiopyarr.sonarr_client import SonarrClient
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, OptionsFlow
@@ -40,19 +42,21 @@ async def validate_input(hass: HomeAssistant, data: dict) -> None:
 
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
-    session = async_get_clientsession(hass)
-
-    sonarr = Sonarr(
-        host=data[CONF_HOST],
+    host_configuration = PyArrHostConfiguration(
+        api_token=data[CONF_API_KEY],
+        ipaddress=data[CONF_HOST],
         port=data[CONF_PORT],
-        api_key=data[CONF_API_KEY],
-        base_path=data[CONF_BASE_PATH],
-        tls=data[CONF_SSL],
+        ssl=data[CONF_SSL],
         verify_ssl=data[CONF_VERIFY_SSL],
-        session=session,
+        base_api_path=data[CONF_BASE_PATH],
     )
 
-    await sonarr.update()
+    sonarr = SonarrClient(
+        host_configuration=host_configuration,
+        session=async_get_clientsession(hass),
+    )
+
+    await sonarr.async_get_system_info()
 
 
 class SonarrConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -105,9 +109,9 @@ class SonarrConfigFlow(ConfigFlow, domain=DOMAIN):
 
             try:
                 await validate_input(self.hass, user_input)
-            except SonarrAccessRestricted:
+            except ArrAuthenticationException:
                 errors = {"base": "invalid_auth"}
-            except SonarrError:
+            except ArrException:
                 errors = {"base": "cannot_connect"}
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
