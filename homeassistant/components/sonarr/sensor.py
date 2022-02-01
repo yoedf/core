@@ -88,8 +88,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up Sonarr sensors based on a config entry."""
     sonarr: SonarrClient = hass.data[DOMAIN][entry.entry_id][DATA_SONARR]
-    host_config: PyArrHostConfiguration = self.hass.data[DOMAIN][entry.entry_id][DATA_HOST_CONFIG]
-    system_status: SystemStatus = self.hass.data[DOMAIN][entry.entry_id][DATA_SYSTEM_STATUS]
+    host_config: PyArrHostConfiguration = hass.data[DOMAIN][entry.entry_id][DATA_HOST_CONFIG]
+    system_status: SystemStatus = hass.data[DOMAIN][entry.entry_id][DATA_SYSTEM_STATUS]
     options: dict[str, Any] = dict(entry.options)
 
     entities = [

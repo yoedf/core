@@ -5,11 +5,12 @@ from unittest.mock import MagicMock, patch
 
 from aiopyarr import (
     Command,
+    Diskspace,
     SonarrCalendar,
     SonarrEpisode,
     SonarrQueueDetail,
     SonarrSeries,
-    SonarrWantedResults,
+    SonarrWantedMissing,
     SystemStatus,
 )
 import pytest

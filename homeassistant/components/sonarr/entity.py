@@ -19,7 +19,7 @@ class SonarrEntity(Entity):
         *,
         sonarr: SonarrClient,
         host_config: PyArrHostConfiguration,
-        system_status: SystemStatus
+        system_status: SystemStatus,
         entry_id: str,
         device_id: str,
     ) -> None:
