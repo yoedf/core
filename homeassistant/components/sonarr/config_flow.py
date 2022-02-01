@@ -56,7 +56,7 @@ async def validate_input(hass: HomeAssistant, data: dict) -> None:
         session=async_get_clientsession(hass),
     )
 
-    await sonarr.async_get_system_info()
+    await sonarr.async_get_system_status()
 
 
 class SonarrConfigFlow(ConfigFlow, domain=DOMAIN):

@@ -26,6 +26,7 @@ from .const import (
     CONF_WANTED_MAX_ITEMS,
     DATA_HOST_CONFIG,
     DATA_SONARR,
+    DATA_SYSTEM_STATUS,
     DEFAULT_UPCOMING_DAYS,
     DEFAULT_WANTED_MAX_ITEMS,
     DOMAIN,
@@ -63,7 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     try:
-        await sonarr.async_get_system_status()
+        system_status = await sonarr.async_get_system_status()
     except ArrAuthenticationException as err:
         raise ConfigEntryAuthFailed(
             "API Key is no longer valid. Please reauthenticate"
@@ -77,6 +78,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {
         DATA_HOST_CONFIG: host_configuration,
         DATA_SONARR: sonarr,
+        DATA_SYSTEM_STATUS: system_status,
     }
 
     hass.config_entries.async_setup_platforms(entry, PLATFORMS)

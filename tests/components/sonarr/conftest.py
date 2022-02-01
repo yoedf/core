@@ -123,7 +123,7 @@ def mock_sonarr_config_flow(
         client = sonarr_mock.return_value
         client.async_get_calendar.return_value = sonarr_calendar()
         client.async_get_commands.return_value = sonarr_commands()
-       client.async_get_diskspace.return_value = sonarr_calendar()
+        client.async_get_diskspace.return_value = sonarr_calendar()
         client.async_get_queue.return_value = sonarr_queue()
         client.async_get_series.return_value = sonarr_series()
         client.async_get_system_status.return_value = sonarr_system_status()
@@ -143,7 +143,7 @@ def mock_sonarr(request: pytest.FixtureRequest) -> Generator[None, MagicMock, No
         client = sonarr_mock.return_value
         client.async_get_calendar.return_value = sonarr_calendar()
         client.async_get_commands.return_value = sonarr_commands()
-       client.async_get_diskspace.return_value = sonarr_calendar()
+        client.async_get_diskspace.return_value = sonarr_calendar()
         client.async_get_queue.return_value = sonarr_queue()
         client.async_get_series.return_value = sonarr_series()
         client.async_get_system_status.return_value = sonarr_system_status()

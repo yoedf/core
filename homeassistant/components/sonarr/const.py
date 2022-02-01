@@ -13,6 +13,7 @@ CONF_WANTED_MAX_ITEMS = "wanted_max_items"
 # Data
 DATA_HOST_CONFIG = "host_config"
 DATA_SONARR = "sonarr"
+DATA_SYSTEM_STATUS = "system_status"
 
 # Defaults
 DEFAULT_BASE_PATH = "/api"

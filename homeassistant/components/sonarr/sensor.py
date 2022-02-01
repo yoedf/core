@@ -5,7 +5,7 @@ from datetime import timedelta
 import logging
 from typing import Any
 
-from aiopyarr import ArrConnectionException, ArrException
+from aiopyarr import ArrConnectionException, ArrException, SystemStatus
 from aiopyarr.models.host_configuration import PyArrHostConfiguration
 from aiopyarr.sonarr_client import SonarrClient
 
@@ -24,7 +24,14 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 import homeassistant.util.dt as dt_util
 
-from .const import CONF_UPCOMING_DAYS, CONF_WANTED_MAX_ITEMS, DATA_SONARR, DOMAIN
+from .const import (
+    CONF_UPCOMING_DAYS,
+    CONF_WANTED_MAX_ITEMS,
+    DATA_HOST_CONFIG,
+    DATA_SONARR,
+    DATA_SYSTEM_STATUS,
+    DOMAIN,
+)
 from .entity import SonarrEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -82,12 +89,14 @@ async def async_setup_entry(
     """Set up Sonarr sensors based on a config entry."""
     sonarr: SonarrClient = hass.data[DOMAIN][entry.entry_id][DATA_SONARR]
     host_config: PyArrHostConfiguration = self.hass.data[DOMAIN][entry.entry_id][DATA_HOST_CONFIG]
+    system_status: SystemStatus = self.hass.data[DOMAIN][entry.entry_id][DATA_SYSTEM_STATUS]
     options: dict[str, Any] = dict(entry.options)
 
     entities = [
         SonarrSensor(
             sonarr,
             host_config,
+            system_status,
             entry.entry_id,
             description,
             options,
@@ -128,6 +137,7 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         self,
         sonarr: SonarrClient,
         host_config: PyArrHostConfiguration,
+        system_status: SystemStatus,
         entry_id: str,
         description: SensorEntityDescription,
         options: dict[str, Any],
@@ -144,6 +154,7 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         super().__init__(
             sonarr=sonarr,
             host_config=host_config,
+            system_status=system_status,
             entry_id=entry_id,
             device_id=entry_id,
         )
@@ -183,7 +194,7 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         attrs = {}
         key = self.entity_description.key
 
-        if key == "diskspace" and self.data.get(key) is not None::
+        if key == "diskspace" and self.data.get(key) is not None:
             for disk in self.data[key].disks:
                 free = disk.free / 1024 ** 3
                 total = disk.total / 1024 ** 3
