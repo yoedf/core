@@ -25,7 +25,6 @@ from .const import (
     CONF_BASE_PATH,
     CONF_UPCOMING_DAYS,
     CONF_WANTED_MAX_ITEMS,
-    DEFAULT_BASE_PATH,
     DEFAULT_PORT,
     DEFAULT_SSL,
     DEFAULT_UPCOMING_DAYS,
@@ -42,13 +41,18 @@ async def validate_input(hass: HomeAssistant, data: dict) -> None:
 
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
+    base_api_path = data[CONF_BASE_PATH]
+
+    if base_api_path in ("", "/", "/api"):
+        base_api_path = None
+
     host_configuration = PyArrHostConfiguration(
         api_token=data[CONF_API_KEY],
         ipaddress=data[CONF_HOST],
         port=data[CONF_PORT],
         ssl=data[CONF_SSL],
         verify_ssl=data[CONF_VERIFY_SSL],
-        base_api_path=data[CONF_BASE_PATH],
+        base_api_path=base_api_path,
     )
 
     sonarr = SonarrClient(
@@ -146,7 +150,7 @@ class SonarrConfigFlow(ConfigFlow, domain=DOMAIN):
         data_schema = {
             vol.Required(CONF_HOST): str,
             vol.Required(CONF_API_KEY): str,
-            vol.Optional(CONF_BASE_PATH, default=DEFAULT_BASE_PATH): str,
+            vol.Optional(CONF_BASE_PATH, default=""): str,
             vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
             vol.Optional(CONF_SSL, default=DEFAULT_SSL): bool,
         }

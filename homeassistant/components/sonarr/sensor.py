@@ -11,14 +11,7 @@ from aiopyarr.sonarr_client import SonarrClient
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_API_KEY,
-    CONF_HOST,
-    CONF_PORT,
-    CONF_SSL,
-    CONF_VERIFY_SSL,
-    DATA_GIGABYTES,
-)
+from homeassistant.const import DATA_GIGABYTES
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -88,7 +81,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up Sonarr sensors based on a config entry."""
     sonarr: SonarrClient = hass.data[DOMAIN][entry.entry_id][DATA_SONARR]
-    host_config: PyArrHostConfiguration = hass.data[DOMAIN][entry.entry_id][DATA_HOST_CONFIG]
+    host_config: PyArrHostConfiguration = hass.data[DOMAIN][entry.entry_id][
+        DATA_HOST_CONFIG
+    ]
     system_status: SystemStatus = hass.data[DOMAIN][entry.entry_id][DATA_SYSTEM_STATUS]
     options: dict[str, Any] = dict(entry.options)
 
@@ -174,7 +169,9 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         elif key == "commands":
             self.data[key] = await self.sonarr.async_get_commands()
         elif key == "queue":
-            self.data[key] = await self.sonarr.async_get_queue()
+            self.data[key] = await self.sonarr.async_get_queue(
+                include_series=True, include_episode=True
+            )
         elif key == "series":
             self.data[key] = await self.sonarr.async_get_series()
         elif key == "upcoming":
@@ -186,7 +183,9 @@ class SonarrSensor(SonarrEntity, SensorEntity):
                 start_date=start, end_date=end
             )
         elif key == "wanted":
-            self.data[key] = await self.sonarr.async_get_wanted(page_size=self.wanted_max_items)
+            self.data[key] = await self.sonarr.async_get_wanted(
+                page_size=self.wanted_max_items
+            )
 
     @property
     def extra_state_attributes(self) -> dict[str, str] | None:
@@ -195,9 +194,9 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         key = self.entity_description.key
 
         if key == "diskspace" and self.data.get(key) is not None:
-            for disk in self.data[key].disks:
-                free = disk.free / 1024 ** 3
-                total = disk.total / 1024 ** 3
+            for disk in self.data[key]:
+                free = disk.freeSpace / 1024 ** 3
+                total = disk.totalSpace / 1024 ** 3
                 usage = free / total * 100
 
                 attrs[
@@ -205,23 +204,32 @@ class SonarrSensor(SonarrEntity, SensorEntity):
                 ] = f"{free:.2f}/{total:.2f}{self.unit_of_measurement} ({usage:.2f}%)"
         elif key == "commands" and self.data.get(key) is not None:
             for command in self.data[key]:
-                attrs[command.name] = command.state
+                attrs[command.name] = command.status
         elif key == "queue" and self.data.get(key) is not None:
-            for item in self.data[key]:
-                remaining = 1 if item.size == 0 else item.size_remaining / item.size
+            for item in self.data[key].records:
+                remaining = 1 if item.size == 0 else item.sizeleft / item.size
                 remaining_pct = 100 * (1 - remaining)
-                name = f"{item.episode.series.title} {item.episode.identifier}"
+                identifier = f"S{item.episode.seasonNumber:02d}E{item.episode. episodeNumber:02d}"
+
+                name = f"{item.series.title} {identifier}"
                 attrs[name] = f"{remaining_pct:.2f}%"
         elif key == "series" and self.data.get(key) is not None:
             for item in self.data[key]:
-                attrs[item.series.title] = f"{item.downloaded}/{item.episodes} Episodes"
+                stats = item.statistics
+                attrs[
+                    item.title
+                ] = f"{stats.episodeFileCount}/{stats.episodeCount} Episodes"
         elif key == "upcoming" and self.data.get(key) is not None:
             for episode in self.data[key]:
-                attrs[episode.series.title] = episode.identifier
+                print(episode)
+                identifier = f"S{episode.seasonNumber:02d}E{episode.episodeNumber:02d}"
+                attrs[episode.seriesId] = identifier
         elif key == "wanted" and self.data.get(key) is not None:
-            for episode in self.data[key].episodes:
-                name = f"{episode.series.title} {episode.identifier}"
-                attrs[name] = episode.airdate
+            for item in self.data[key].records:
+                identifier = f"S{item.seasonNumber:02d}E{item.episodeNumber:02d}"
+
+                name = f"{item.seriesId} {identifier}"
+                attrs[name] = item.airDate
 
         return attrs
 
@@ -231,7 +239,7 @@ class SonarrSensor(SonarrEntity, SensorEntity):
         key = self.entity_description.key
 
         if key == "diskspace" and self.data.get(key) is not None:
-            total_free = sum(disk.free for disk in self.data[key].disks)
+            total_free = sum(disk.freeSpace for disk in self.data[key])
             free = total_free / 1024 ** 3
             return f"{free:.2f}"
 
@@ -239,7 +247,7 @@ class SonarrSensor(SonarrEntity, SensorEntity):
             return len(self.data[key])
 
         if key == "queue" and self.data.get(key) is not None:
-            return len(self.data[key])
+            return self.data[key].totalRecords
 
         if key == "series" and self.data.get(key) is not None:
             return len(self.data[key])
@@ -248,6 +256,6 @@ class SonarrSensor(SonarrEntity, SensorEntity):
             return len(self.data[key])
 
         if key == "wanted" and self.data.get(key) is not None:
-            return self.data[key].total
+            return self.data[key].totalRecords
 
         return None

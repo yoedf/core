@@ -7,7 +7,7 @@ from aiopyarr import (
     Command,
     Diskspace,
     SonarrCalendar,
-    SonarrQueueDetail,
+    SonarrQueue,
     SonarrSeries,
     SonarrWantedMissing,
     SystemStatus,
@@ -52,10 +52,10 @@ def sonarr_diskspace() -> list[Diskspace]:
     return [Diskspace(result) for result in results]
 
 
-def sonarr_queue() -> list[SonarrQueueDetail]:
+def sonarr_queue() -> SonarrQueue:
     """Generate a response for the queue method."""
     results = json.loads(load_fixture("sonarr/queue.json"))
-    return [SonarrQueueDetail(result) for result in results]
+    return SonarrQueue(results)
 
 
 def sonarr_series() -> list[SonarrSeries]:
@@ -116,7 +116,7 @@ def mock_sonarr_config_flow() -> Generator[None, MagicMock, None]:
         client = sonarr_mock.return_value
         client.async_get_calendar.return_value = sonarr_calendar()
         client.async_get_commands.return_value = sonarr_commands()
-        client.async_get_diskspace.return_value = sonarr_calendar()
+        client.async_get_diskspace.return_value = sonarr_diskspace()
         client.async_get_queue.return_value = sonarr_queue()
         client.async_get_series.return_value = sonarr_series()
         client.async_get_system_status.return_value = sonarr_system_status()
@@ -128,11 +128,13 @@ def mock_sonarr_config_flow() -> Generator[None, MagicMock, None]:
 @pytest.fixture
 def mock_sonarr() -> Generator[None, MagicMock, None]:
     """Return a mocked Sonarr client."""
-    with patch("homeassistant.components.sonarr.SonarrClient", autospec=True) as sonarr_mock:
+    with patch(
+        "homeassistant.components.sonarr.SonarrClient", autospec=True
+    ) as sonarr_mock:
         client = sonarr_mock.return_value
         client.async_get_calendar.return_value = sonarr_calendar()
         client.async_get_commands.return_value = sonarr_commands()
-        client.async_get_diskspace.return_value = sonarr_calendar()
+        client.async_get_diskspace.return_value = sonarr_diskspace()
         client.async_get_queue.return_value = sonarr_queue()
         client.async_get_series.return_value = sonarr_series()
         client.async_get_system_status.return_value = sonarr_system_status()

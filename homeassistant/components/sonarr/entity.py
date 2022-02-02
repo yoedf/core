@@ -28,7 +28,7 @@ class SonarrEntity(Entity):
         self._device_id = device_id
         self.sonarr = sonarr
         self.host_config = host_config
-        self.system_status = system_status 
+        self.system_status = system_status
 
     @property
     def device_info(self) -> DeviceInfo | None:

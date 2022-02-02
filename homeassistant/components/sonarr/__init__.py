@@ -49,13 +49,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         }
         hass.config_entries.async_update_entry(entry, options=options)
 
+    base_api_path = entry.data[CONF_BASE_PATH]
+
+    if base_api_path in ("", "/", "/api"):
+        base_api_path = None
+
     host_configuration = PyArrHostConfiguration(
         api_token=entry.data[CONF_API_KEY],
         ipaddress=entry.data[CONF_HOST],
         port=entry.data[CONF_PORT],
         ssl=entry.data[CONF_SSL],
         verify_ssl=entry.data[CONF_VERIFY_SSL],
-        base_api_path=entry.data[CONF_BASE_PATH],
+        base_api_path=base_api_path,
     )
 
     sonarr = SonarrClient(

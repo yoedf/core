@@ -56,7 +56,9 @@ async def test_invalid_auth(
     hass: HomeAssistant, mock_sonarr_config_flow: MagicMock
 ) -> None:
     """Test we show user form on invalid auth."""
-    mock_sonarr_config_flow.async_get_system_status.side_effect = ArrAuthenticationException
+    mock_sonarr_config_flow.async_get_system_status.side_effect = (
+        ArrAuthenticationException
+    )
 
     user_input = MOCK_USER_INPUT.copy()
     result = await hass.config_entries.flow.async_init(

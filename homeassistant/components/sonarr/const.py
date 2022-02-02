@@ -16,7 +16,6 @@ DATA_SONARR = "sonarr"
 DATA_SYSTEM_STATUS = "system_status"
 
 # Defaults
-DEFAULT_BASE_PATH = "/api"
 DEFAULT_HOST = "localhost"
 DEFAULT_PORT = 8989
 DEFAULT_SSL = False
