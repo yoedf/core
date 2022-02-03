@@ -180,7 +180,9 @@ class SonarrSensor(SonarrEntity, SensorEntity):
             end = start + timedelta(days=self.upcoming_days)
 
             self.data[key] = await self.sonarr.async_get_calendar(
-                start_date=start, end_date=end
+                start_date=start,
+                end_date=end,
+                include_series=True,
             )
         elif key == "wanted":
             self.data[key] = await self.sonarr.async_get_wanted(
@@ -221,14 +223,13 @@ class SonarrSensor(SonarrEntity, SensorEntity):
                 ] = f"{stats.episodeFileCount}/{stats.episodeCount} Episodes"
         elif key == "upcoming" and self.data.get(key) is not None:
             for episode in self.data[key]:
-                print(episode)
                 identifier = f"S{episode.seasonNumber:02d}E{episode.episodeNumber:02d}"
-                attrs[episode.seriesId] = identifier
+                attrs[episode.series.title] = identifier
         elif key == "wanted" and self.data.get(key) is not None:
             for item in self.data[key].records:
                 identifier = f"S{item.seasonNumber:02d}E{item.episodeNumber:02d}"
 
-                name = f"{item.seriesId} {identifier}"
+                name = f"{item.series.title} {identifier}"
                 attrs[name] = item.airDate
 
         return attrs
