@@ -186,7 +186,8 @@ class SonarrSensor(SonarrEntity, SensorEntity):
             )
         elif key == "wanted":
             self.data[key] = await self.sonarr.async_get_wanted(
-                page_size=self.wanted_max_items
+                page_size=self.wanted_max_items,
+                include_series=True,
             )
 
     @property
